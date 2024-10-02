@@ -3,7 +3,7 @@ package net.tecdroid.constants;
 import com.revrobotics.CANSparkBase;
 import edu.wpi.first.units.*;
 
-public class SwerveModuleConstants {
+public final class SwerveModuleConstants {
 
     ///////////////////////////////////
     // Encoder Factors and Modifiers //

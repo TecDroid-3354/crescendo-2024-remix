@@ -22,7 +22,7 @@ import net.tecdroid.config.SwerveDriveConfig;
 import net.tecdroid.config.SwerveModuleConfig;
 import net.tecdroid.constants.SwerveModuleConstants;
 
-public class SwerveModule extends SubsystemBase {
+public final class SwerveModule extends SubsystemBase {
     private static final int AZIMUTHAL_MOTOR_ID_OFFSET = 0;
     private static final int PROPULSION_MOTOR_ID_OFFSET = 1;
     private static final int AZIMUTHAL_ENCODER_ID_OFFSET = 2;
@@ -89,6 +89,11 @@ public class SwerveModule extends SubsystemBase {
         setDefaultCommand(generateDefaultCommand());
     }
 
+    /**
+     * Loads the given configuration onto the drive's components
+     * @param driveConfig The configuration of the swerve drive this module belongs to
+     * @param moduleConfig The configuration of the drive's modules
+     */
     public void applyConfiguration(final SwerveDriveConfig driveConfig, final SwerveModuleConfig moduleConfig) {
         double[] azimuthalPidfCoefficients = driveConfig.getAzimuthalPidfCoefficients();
         azimuthalMotorController.setInverted(moduleConfig.isAzimuthalInverted());
@@ -105,6 +110,10 @@ public class SwerveModule extends SubsystemBase {
         propulsionPidfController.setFF(propulsionPidfCoefficients[3]);
     }
 
+    /**
+     * Generates the default command for this subsystem
+     * @return The default command
+     */
     public Command generateDefaultCommand() {
         return Commands.run(() -> {
             final SwerveModuleState target = getTargetState();
@@ -113,52 +122,92 @@ public class SwerveModule extends SubsystemBase {
         });
     }
 
-    public void adjustToReference() {
-        final double referenceAngleDegrees = azimuthalReferenceEncoder.getAbsolutePosition().getValue();
-        azimuthalMotorEncoder.setPosition(referenceAngleDegrees);
+    /**
+     * Sets the azimuth of the azimuthal motor to be that of the reference encoder's
+     */
+    public void adjustAzimuthToReference() {
+        final double referenceAngleRadians = Math.toRadians(azimuthalReferenceEncoder.getAbsolutePosition().getValue());
+        azimuthalMotorEncoder.setPosition(referenceAngleRadians);
     }
 
-    public void zeroReferenceEncoder() {
-        azimuthalReferenceEncoder.setPosition(0.0);
-    }
-
-    public void resetPosition() {
+    /**
+     * Resets the traveled distance of this module back to 0 meters
+     */
+    public void resetDistance() {
         propulsionMotorEncoder.setPosition(0.0);
     }
 
+    /**
+     * Optimizes the given state via the module's current angle
+     * @param state The state to optimize
+     * @return The optimized state
+     */
     public SwerveModuleState optimizeState(SwerveModuleState state) {
         return SwerveModuleState.optimize(state, getAzimuth());
     }
 
-    public void setOptimizedTargetState(SwerveModuleState state) {
-        setTargetState(optimizeState(state));
-    }
-
+    /**
+     * Retrieves the azimuth of this module's wheel
+     * @return The wheel's azimuth
+     */
     public Rotation2d getAzimuth() {
         return Rotation2d.fromDegrees(azimuthalMotorEncoder.getPosition());
     }
 
-    public Measure<Distance> getPositionMeters() {
+    /**
+     * Retrieves the distance that this module has traveled
+     * @return The distance
+     */
+    public Measure<Distance> getDistance() {
         return Units.Meters.of(propulsionMotorEncoder.getPosition());
     }
 
+    /**
+     * Retrieves the linear velocity at which this module is moving
+     * @return The module's velocity
+     */
     public Measure<Velocity<Distance>> getVelocityMetersPerSecond() {
         return Units.MetersPerSecond.of(propulsionMotorEncoder.getVelocity());
     }
 
+    /**
+     * Retrieves the current position of this module
+     * @return The module's position
+     */
     public SwerveModulePosition getPosition() {
-        return new SwerveModulePosition(getPositionMeters().in(Units.Meters), getAzimuth());
+        return new SwerveModulePosition(getDistance().in(Units.Meters), getAzimuth());
     }
 
+    /**
+     * Retrieves the target state of this module
+     * @return The target state
+     */
     public SwerveModuleState getTargetState() {
         return targetState;
     }
 
+    /**
+     * Sets the target state of this module
+     * @param targetState The state
+     */
     public void setTargetState(SwerveModuleState targetState) {
         this.targetState = targetState;
     }
 
+    /**
+     * Optimizes the given state, then assigns it as the target state
+     * @param state The state
+     */
+    public void setOptimizedTargetState(SwerveModuleState state) {
+        setTargetState(optimizeState(state));
+    }
+
+    /**
+     * Retrieves this module's offset from the robot's center
+     * @return The module's offset
+     */
     public Translation2d getOffsetFromCenter() {
         return offsetFromCenter;
     }
+
 }
